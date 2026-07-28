@@ -1,0 +1,38 @@
+# Production configuration for the Sentinel platform.
+environment: production
+
+logging:
+  level: INFO
+  json: true
+
+video:
+  decode_fps: 15
+  reconnect_seconds: 5
+  ring_buffer_seconds: 20
+
+detector:
+  backend: ultralytics
+  model: yolov8m.pt
+  confidence: 0.35
+  inference_fps: 5
+  classes: [person, forklift, car, truck]
+
+tracker:
+  backend: bytetrack
+  update_fps: 15
+  max_age_frames: 45
+  min_hits: 3
+  iou_threshold: 0.3
+  max_tracking_gap_seconds: 1.5
+
+event_engine:
+  update_fps: 15
+  default_cooldown_seconds: 30
+
+storage:
+  database_url: null
+  sqlite_path: /var/lib/sentinel/sentinel.db
+  object_store_local_path: /var/lib/sentinel/object-store
+
+evaluation:
+  temporal_iou_threshold: 0.3

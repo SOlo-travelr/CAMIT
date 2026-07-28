@@ -1,0 +1,40 @@
+# Development configuration for the Sentinel platform.
+environment: development
+
+logging:
+  level: INFO
+  json: true
+
+video:
+  decode_fps: 15
+  reconnect_seconds: 5
+  ring_buffer_seconds: 20
+
+detector:
+  # "synthetic" needs no ML deps and reads ground-truth sidecar files produced
+  # by scripts/generate_test_videos.py. Switch to "ultralytics" for real models.
+  backend: synthetic
+  model: yolov8n.pt
+  confidence: 0.30
+  inference_fps: 5
+  classes: [person, forklift, car, truck]
+
+tracker:
+  backend: builtin        # builtin | bytetrack
+  update_fps: 15
+  max_age_frames: 30
+  min_hits: 3
+  iou_threshold: 0.3
+  max_tracking_gap_seconds: 1.5
+
+event_engine:
+  update_fps: 15
+  default_cooldown_seconds: 30
+
+storage:
+  database_url: null       # null -> SQLite fallback at sqlite_path
+  sqlite_path: ./data/sentinel.db
+  object_store_local_path: ./data/object-store
+
+evaluation:
+  temporal_iou_threshold: 0.3

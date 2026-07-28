@@ -1,0 +1,41 @@
+policy_id: restricted_zone_v1
+name: Restricted zone entry
+enabled: true
+
+scope:
+  camera_ids:
+    - warehouse_cam_03
+  schedule:
+    timezone: America/New_York
+    days: [mon, tue, wed, thu, fri]
+    start: "00:00"
+    end: "23:59"
+
+subjects:
+  primary:
+    class: person
+
+zones:
+  include:
+    - forklift_lane
+
+conditions:
+  all:
+    - type: zone_entry
+      subject: primary
+
+event:
+  type: restricted_zone
+  cooldown_seconds: 30
+  minimum_duration_ms: 300
+  severity: medium
+  confidence_threshold: 0.4
+
+evidence:
+  pre_event_seconds: 8
+  post_event_seconds: 8
+  save_clip: true
+  save_snapshot: true
+
+review:
+  human_confirmation_required: true

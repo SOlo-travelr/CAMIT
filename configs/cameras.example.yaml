@@ -1,0 +1,18 @@
+# Example camera inventory. Copy to cameras.yaml and edit.
+cameras:
+  - camera_id: warehouse_cam_03
+    name: Warehouse Aisle 3
+    source:
+      kind: file            # file | rtsp | webcam
+      uri: datasets/videos/near_miss.mp4
+      # For rtsp: uri: rtsp://user:pass@10.0.0.5:554/stream1
+      # For webcam: uri: "0"
+    detector:
+      backend: synthetic
+      confidence: 0.30
+    tracker:
+      backend: builtin
+    calibration_id: null    # set after running calibration workflow
+    zones:
+      - forklift_lane
+    enabled: true

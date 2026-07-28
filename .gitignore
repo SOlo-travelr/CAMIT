@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+data/
+datasets/videos/
+!datasets/manifests/
+!datasets/annotations/
+*.mp4
+*.db
+.env
+mlruns/

@@ -1,0 +1,53 @@
+policy_id: forklist_person_risk_v1
+name: Forklift pedestrian risk
+enabled: true
+
+scope:
+  camera_ids:
+    - warehouse_cam_03
+  schedule:
+    timezone: America/New_York
+    days: [mon, tue, wed, thu, fri]
+    start: "00:00"
+    end: "23:59"
+
+subjects:
+  primary:
+    class: person
+  secondary:
+    class: forklift
+
+zones:
+  include:
+    - forklift_lane
+
+conditions:
+  all:
+    - type: dwell_time
+      subject: primary
+      minimum_seconds: 0
+
+    - type: object_motion
+      subject: secondary
+      minimum_speed_mps: 0.3
+
+    - type: predicted_separation
+      subjects: [primary, secondary]
+      horizon_seconds: 3
+      threshold_meters: 1.0
+
+event:
+  type: collision_risk
+  cooldown_seconds: 30
+  minimum_duration_ms: 500
+  severity: high
+  confidence_threshold: 0.5
+
+evidence:
+  pre_event_seconds: 8
+  post_event_seconds: 8
+  save_clip: true
+  save_snapshot: true
+
+review:
+  human_confirmation_required: true

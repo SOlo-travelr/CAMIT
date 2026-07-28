@@ -1,0 +1,14 @@
+policies_dir: configs/policies
+videos:
+- video_id: restricted_entry
+  camera_id: warehouse_cam_03
+  video: ../videos/restricted_entry.mp4
+  sidecar: ../videos/restricted_entry.gt.json
+- video_id: near_miss
+  camera_id: warehouse_cam_03
+  video: ../videos/near_miss.mp4
+  sidecar: ../videos/near_miss.gt.json
+- video_id: parallel_negative
+  camera_id: warehouse_cam_03
+  video: ../videos/parallel_negative.mp4
+  sidecar: ../videos/parallel_negative.gt.json
