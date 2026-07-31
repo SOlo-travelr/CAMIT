@@ -19,7 +19,7 @@ class Database:
         self._Session = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
 
     def create_all(self) -> None:
-        Base.metadata.create_all(self.engine)
+        Base.metadata.create_all(self.engine, checkfirst=True)
 
     def drop_all(self) -> None:
         Base.metadata.drop_all(self.engine)

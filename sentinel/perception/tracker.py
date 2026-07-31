@@ -42,6 +42,10 @@ class BuiltinTracker:
         self.min_hits = min_hits
         self._tracks: list[_TrackState] = []
         self._next_id = 1
+        #: Track IDs pruned during the most recent :meth:`update` call. The
+        #: pipeline consumes these to release per-track state (observation
+        #: history, rule state) so long-running feeds do not leak memory.
+        self.removed_track_ids: list[int] = []
 
     def update(self, detections: list[Detection], frame: FramePacket) -> list[Track]:
         for t in self._tracks:
@@ -72,6 +76,9 @@ class BuiltinTracker:
             )
             self._next_id += 1
 
+        self.removed_track_ids = [
+            t.track_id for t in self._tracks if t.time_since_update > self.max_age_frames
+        ]
         self._tracks = [t for t in self._tracks if t.time_since_update <= self.max_age_frames]
 
         output: list[Track] = []

@@ -91,6 +91,11 @@ class ProximityRule:
                 self._streak[pair] = 0
         return candidates
 
+    def forget(self, track_id: int) -> None:
+        self._history.pop(track_id, None)
+        for pair in [p for p in self._streak if track_id in p]:
+            self._streak.pop(pair, None)
+
     def _emit(self, person, veh, now, dist, veh_speed) -> EventCandidate | None:
         key = (self.policy_id, person.track_id, veh.track_id)
         if not self._cooldown.ready(key, now, self.cooldown_seconds):

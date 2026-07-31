@@ -16,6 +16,14 @@ detector:
   confidence: 0.35
   inference_fps: 5
   classes: [person, forklift, car, truck]
+  # Stock COCO weights have no "forklift" class. Map the closest COCO vehicle
+  # classes onto the platform vocabulary so the proximity/collision rules work
+  # out of the box; replace with fine-tuned weights for higher precision.
+  class_map:
+    truck: forklift
+    bus: forklift
+  # Higher inference resolution improves recall on small/distant objects.
+  imgsz: 960
 
 tracker:
   backend: bytetrack

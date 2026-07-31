@@ -161,3 +161,14 @@ class EventEngine:
     @property
     def active_rule_count(self) -> int:
         return len(self._rules)
+
+    def forget(self, track_id: int) -> None:
+        """Release per-track state for a track the tracker has dropped.
+
+        Keeps long-running feeds bounded in memory. Rules that carry no
+        per-track state simply ignore the call.
+        """
+        for rule in self._rules:
+            forget = getattr(rule, "forget", None)
+            if callable(forget):
+                forget(track_id)

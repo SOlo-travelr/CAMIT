@@ -23,6 +23,7 @@ from sentinel.observability.logging import get_logger
 from sentinel.observability.metrics import (
     DETECTIONS,
     EVENTS_EMITTED,
+    FRAMES_DROPPED,
     FRAMES_PROCESSED,
     INCIDENTS_CREATED,
     PIPELINE_LATENCY,
@@ -88,28 +89,48 @@ class CameraPipeline:
             if not self.sampler.accept(frame):
                 continue
 
-            t0 = time.perf_counter()
-            detections = self.detector.predict(frame.image, frame)
-            for d in detections:
-                DETECTIONS.labels(self.camera_id, d.class_name).inc()
-            tracks = self.tracker.update(detections, frame)
-            observations = self.builder.build(
-                self.camera_id, frame.timestamp, tracks, self.calibration
-            )
-            self._last_observations = observations
-            candidates = self.engine.update(observations, now=frame.timestamp)
-            PIPELINE_LATENCY.labels(self.camera_id).observe(time.perf_counter() - t0)
-
-            for candidate in candidates:
-                EVENTS_EMITTED.labels(self.camera_id, candidate.event_type).inc()
-                incident = self.incidents.ingest(candidate)
-                if incident is not None:
-                    self._finalize_incident(incident, candidate, frame)
-                    result.incidents.append(incident)
+            try:
+                self._process_frame(frame, result)
+            except Exception:
+                # A single malformed/corrupt frame must never take down a live
+                # feed. Log, count it, and keep processing the stream.
+                FRAMES_DROPPED.labels(self.camera_id).inc()
+                logger.exception(
+                    "frame processing failed; skipping",
+                    extra={"extra_fields": {
+                        "camera_id": self.camera_id, "frame_id": frame.frame_id,
+                    }},
+                )
 
             if max_frames is not None and result.frames >= max_frames:
                 break
         return result
+
+    def _process_frame(self, frame, result: PipelineResult) -> None:
+        t0 = time.perf_counter()
+        detections = self.detector.predict(frame.image, frame)
+        for d in detections:
+            DETECTIONS.labels(self.camera_id, d.class_name).inc()
+        tracks = self.tracker.update(detections, frame)
+        observations = self.builder.build(
+            self.camera_id, frame.timestamp, tracks, self.calibration
+        )
+        self._last_observations = observations
+        candidates = self.engine.update(observations, now=frame.timestamp)
+        PIPELINE_LATENCY.labels(self.camera_id).observe(time.perf_counter() - t0)
+
+        # Release per-track state for tracks the tracker has dropped so long
+        # feeds stay bounded in memory.
+        for track_id in getattr(self.tracker, "removed_track_ids", []):
+            self.builder.forget(track_id)
+            self.engine.forget(track_id)
+
+        for candidate in candidates:
+            EVENTS_EMITTED.labels(self.camera_id, candidate.event_type).inc()
+            incident = self.incidents.ingest(candidate)
+            if incident is not None:
+                self._finalize_incident(incident, candidate, frame)
+                result.incidents.append(incident)
 
     def _finalize_incident(
         self, incident: Incident, candidate: EventCandidate, frame

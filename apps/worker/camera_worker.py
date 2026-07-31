@@ -68,5 +68,6 @@ def build_detector(config: AppConfig, sidecar_path: str | Path | None = None):
         return SyntheticDetector(sidecar_path, confidence_floor=0.0)
     return UltralyticsDetector(
         model=config.detector.model, confidence=config.detector.confidence,
-        classes=config.detector.classes,
+        classes=config.detector.classes, class_map=config.detector.class_map,
+        imgsz=config.detector.imgsz,
     )

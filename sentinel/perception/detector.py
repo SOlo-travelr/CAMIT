@@ -59,9 +59,25 @@ class SyntheticDetector:
 
 
 class UltralyticsDetector:  # pragma: no cover - requires optional heavy dependency
-    """Real YOLO detector behind the platform interface."""
+    """Real YOLO detector behind the platform interface.
 
-    def __init__(self, model: str = "yolov8n.pt", confidence: float = 0.3, classes=None) -> None:
+    ``class_map`` remaps model (COCO) class names onto the platform vocabulary
+    before filtering. This is what lets a stock COCO model stand in for domain
+    objects the base weights do not know (e.g. mapping ``truck``/``bus`` onto
+    ``forklift`` for a warehouse pilot) instead of silently dropping them.
+
+    ``imgsz`` controls the inference resolution; raising it improves recall on
+    small or distant objects in low-resolution feeds at the cost of latency.
+    """
+
+    def __init__(
+        self,
+        model: str = "yolov8n.pt",
+        confidence: float = 0.3,
+        classes=None,
+        class_map: dict[str, str] | None = None,
+        imgsz: int = 640,
+    ) -> None:
         try:
             from ultralytics import YOLO
         except Exception as exc:
@@ -71,14 +87,21 @@ class UltralyticsDetector:  # pragma: no cover - requires optional heavy depende
         self._model = YOLO(model)
         self._confidence = confidence
         self._classes = set(classes) if classes else None
+        self._class_map = dict(class_map) if class_map else {}
+        self._imgsz = imgsz
 
     def predict(self, image: np.ndarray, frame: FramePacket | None = None) -> list[Detection]:
-        results = self._model.predict(image, conf=self._confidence, verbose=False)
+        if image is None or getattr(image, "size", 0) == 0:
+            return []
+        results = self._model.predict(
+            image, conf=self._confidence, imgsz=self._imgsz, verbose=False
+        )
         detections: list[Detection] = []
         for r in results:
             names = r.names
             for b in r.boxes:
                 cls = names[int(b.cls)]
+                cls = self._class_map.get(cls, cls)
                 if self._classes and cls not in self._classes:
                     continue
                 x1, y1, x2, y2 = (float(v) for v in b.xyxy[0].tolist())
@@ -96,6 +119,10 @@ def create_detector(config, sidecar_path: str | Path | None = None):
         return SyntheticDetector(sidecar_path, confidence_floor=0.0)
     if backend == "ultralytics":
         return UltralyticsDetector(
-            model=config.model, confidence=config.confidence, classes=config.classes
+            model=config.model,
+            confidence=config.confidence,
+            classes=config.classes,
+            class_map=getattr(config, "class_map", None),
+            imgsz=getattr(config, "imgsz", 640),
         )
     raise ValueError(f"Unknown detector backend: {backend}")

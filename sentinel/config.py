@@ -28,6 +28,12 @@ class DetectorConfig(BaseModel):
     confidence: float = 0.30
     inference_fps: float = 5.0
     classes: list[str] = Field(default_factory=lambda: ["person", "forklift", "car", "truck"])
+    # Remap model (COCO) class names onto platform vocabulary before filtering,
+    # e.g. {"truck": "forklift"} to use stock weights for a warehouse pilot.
+    class_map: dict[str, str] = Field(default_factory=dict)
+    # Inference resolution; raise (e.g. 960/1280) to improve recall on small or
+    # distant objects in low-resolution feeds.
+    imgsz: int = 640
 
 
 class TrackerConfig(BaseModel):
